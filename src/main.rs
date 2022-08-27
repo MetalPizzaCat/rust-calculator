@@ -1,4 +1,5 @@
 use regex::Error;
+use regex::Regex;
 use std::{collections::HashMap, fmt::Display, hash};
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Eq, Hash)]
@@ -27,6 +28,7 @@ impl Token {
     }
 }
 
+/**Calculates result of the equation */
 fn calculate(tokens: &Vec<Token>) -> Option<f32> {
     let mut numbers: Vec<f32> = Vec::new();
     let mut counter: usize = 0;
@@ -62,12 +64,14 @@ fn calculate(tokens: &Vec<Token>) -> Option<f32> {
     numbers.pop()
 }
 
+/**Simple macro for generating HashMaps */
 macro_rules! map {
     ($(($k:expr , $v:expr)),* $(,)?) => {{
         core::convert::From::from([$(($k, $v),)*])
     }};
 }
 
+/**Converts infix(normal) form into polish postfix for use in calculate function */
 fn parse(line: String) -> Result<Vec<Token>, Error> {
     //simple list for converting symbols to operations
     let operations: HashMap<&str, OperandType> = map! {
@@ -89,7 +93,7 @@ fn parse(line: String) -> Result<Vec<Token>, Error> {
         (OperandType::Close,2),
     };
 
-    use regex::Regex;
+    let line = "(".to_owned() + line.as_str() + ")";
     let mut stack: Vec<OperandType> = Vec::new();
     let mut tokens: Vec<Token> = Vec::new();
     //This regex matches either any floating point number
@@ -110,7 +114,6 @@ fn parse(line: String) -> Result<Vec<Token>, Error> {
             ")" => {
                 while let Some(operation) = stack.pop() {
                     if matches!(operation, OperandType::Open) {
-                        let i = 0;
                         break;
                     }
                     tokens.push(Token::new(operation, 0.0));
@@ -121,6 +124,7 @@ fn parse(line: String) -> Result<Vec<Token>, Error> {
                 let priority: u8 = priorities[&operations[token.as_str()]];
                 while let Some(operation) = stack.pop() {
                     if matches!(operation, OperandType::Open) || priorities[&operation] < priority {
+                        //push back the operation since we only want to stop and not clear
                         stack.push(operation);
                         break;
                     }
@@ -129,12 +133,13 @@ fn parse(line: String) -> Result<Vec<Token>, Error> {
                 stack.push(operations[token.as_str()]);
             }
         }
-        let u = 0;
     }
     Ok(tokens)
 }
 fn main() {
-    match parse("(4 *(6 - 3) + ( 8 - 6)/2)".to_owned()) {
+    println!("Input equation: ");
+    let input: String = text_io::read!("{}\n");
+    match parse(input) {
         Ok(compute_tree) => {
             if let Some(result) = calculate(&compute_tree) {
                 println!("Result : {}", result);
